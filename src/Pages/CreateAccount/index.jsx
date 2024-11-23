@@ -1,3 +1,4 @@
+// src/Pages/CreateAccount/index.jsx
 import React, { useState, useContext } from 'react';
 import { AppContext } from '../../Context'; // Importa el contexto
 
@@ -10,8 +11,10 @@ function CreateAccount() {
     const [description, setDescription] = useState('');
     const [relationshipType, setRelationshipType] = useState('friendship'); // 'friendship' o 'relationship'
     const [photo, setPhoto] = useState(null); // Para almacenar la foto
+    const [error, setError] = useState(''); // Para manejar errores
+    const [success, setSuccess] = useState(''); // Para manejar mensajes de éxito
 
-    const handleSubmit = (event) => {
+    const handleSubmit = async (event) => {
         event.preventDefault();
 
         const newUser = {
@@ -26,14 +29,15 @@ function CreateAccount() {
             image: photo ? URL.createObjectURL(photo) : '',
         };
 
-        addUser(newUser, (err, userId) => {
-            if (err) {
-                console.error('Error al agregar usuario:', err);
-                return;
-            }
-            console.log('Usuario creado con ID:', userId);
-            // Aquí puedes redirigir al usuario o mostrar un mensaje de éxito
-        });
+        try {
+            const userId = await addUser(newUser); // Llama a la función addUser y espera la respuesta
+            setSuccess(`Usuario creado con ID: ${userId}`); // Mensaje de éxito
+            setError(''); // Limpia el mensaje de error
+        } catch (err) {
+            console.error('Error al agregar usuario:', err);
+            setError('Error al crear la cuenta. Inténtalo de nuevo.'); // Mensaje de error
+            setSuccess(''); // Limpia el mensaje de éxito
+        }
     };
 
     const handlePhotoChange = (event) => {
@@ -43,6 +47,8 @@ function CreateAccount() {
     return (
         <form onSubmit={handleSubmit} className="max-w-md mx-auto p-4 bg-white rounded-lg shadow-md">
             <h2 className="text-xl font-bold mb-4">Crear Cuenta</h2>
+            {error && <p className="text-red-500">{error}</p>} {/* Muestra mensaje de error */}
+            {success && <p className="text-green-500">{success}</p>} {/* Muestra mensaje de éxito */}
             <label className="block mb-2">Correo Electrónico:</label>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="border rounded p-2 mb-4 w-full" />
             <label className="block mb-2">Contraseña:</label>

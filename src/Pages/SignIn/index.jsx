@@ -75,6 +75,16 @@ function LoginForm() {
                     <p className="footer">
                         ¿Olvidaste tu contraseña? <Link to="/password-reset">Recordar</Link>
                     </p>
+
+                    <p className="footer text-center text-sm text-gray-600 mt-4">
+                    ¿No tienes una cuenta?{" "}
+                    <Link
+                        to="/CreateAccount"
+                        className="text-blue-500 font-semibold hover:underline hover:text-blue-700 transition-colors duration-300"
+                    >
+                        Crear cuenta
+                    </Link>
+                    </p>
                 </form>
             </div>
         </div>

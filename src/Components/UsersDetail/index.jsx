@@ -23,11 +23,11 @@ const UsersDetail = () => {
             </div>
 
             <figure className='mb-4'>
-                <img className='h-48 w-full object-cover rounded-lg shadow-md transition-transform duration-300 hover:scale-105' src={userToShow.image} alt={`${userToShow.name.first} ${userToShow.name.last}`} />
+                <img className='h-48 w-full object-cover rounded-lg shadow-md transition-transform duration-300 hover:scale-105' src={userToShow.image} alt={`${userToShow.first_name} ${userToShow.last_name}`} />
             </figure>
 
             <p className='text-gray-700'>
-                <span className='font-semibold'>{userToShow.name.first} {userToShow.name.last}</span>
+                <span className='font-semibold'>{userToShow.first_name} {userToShow.last_name}</span>
                 <br />
                 <span>{userToShow.description}</span>
             </p>
