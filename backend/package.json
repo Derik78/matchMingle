@@ -11,7 +11,10 @@
   "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^4.21.1",
-    "mysql2": "^3.11.4"
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.11.4",
+    "stream-chat": "^8.56.1",
+    "stream-chat-react": "^10.20.0"
   }
 }

@@ -1,4 +1,3 @@
-// src/Pages/CreateAccount/index.jsx
 import React, { useState, useContext } from 'react';
 import { AppContext } from '../../Context'; // Importa el contexto
 
@@ -49,16 +48,22 @@ function CreateAccount() {
             <h2 className="text-xl font-bold mb-4">Crear Cuenta</h2>
             {error && <p className="text-red-500">{error}</p>} {/* Muestra mensaje de error */}
             {success && <p className="text-green-500">{success}</p>} {/* Muestra mensaje de éxito */}
+
             <label className="block mb-2">Correo Electrónico:</label>
             <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className="border rounded p-2 mb-4 w-full" />
+
             <label className="block mb-2">Contraseña:</label>
             <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required className="border rounded p-2 mb-4 w-full" />
+
             <label className="block mb-2">Nombre:</label>
             <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} required className="border rounded p-2 mb-4 w-full" />
+
             <label className="block mb-2">Apellido:</label>
             <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} required className="border rounded p-2 mb-4 w-full" />
+
             <label className="block mb-2">Descripción:</label>
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} required className="border rounded p-2 mb-4 w-full" />
+                
             <label className="block mb-2">Tipo de Relación:</label>
             <select value={relationshipType} onChange={(e) => setRelationshipType(e.target.value)} className="border rounded p-2 mb-4 w-full">
                 <option value="friendship">Amistad</option>

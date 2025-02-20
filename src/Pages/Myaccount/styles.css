@@ -1,0 +1,68 @@
+.my_account_constructor {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centra el contenido horizontalmente */
+    padding: 20px; /* Espaciado interno */
+    background-color: rgba(255, 255, 255, 0.9); /* Fondo blanco con un poco de transparencia */
+    border-radius: 12px; /* Bordes redondeados */
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2); /* Sombra más pronunciada para dar profundidad */
+    transition: transform 0.3s, box-shadow 0.3s; /* Transición suave para efectos */
+    max-width: 400px; /* Ancho máximo para el contenedor */
+    margin: 20px auto; /* Centra el contenedor en la página */
+}
+
+.my_account_constructor:hover {
+    transform: translateY(-5px); /* Eleva el contenedor al pasar el mouse */
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3); /* Sombra más intensa al pasar el mouse */
+}
+
+.title {
+    font-size: 2.5rem; /* Tamaño de fuente más grande */
+    color: #333; /* Color oscuro para el texto */
+    margin-bottom: 20px; /* Espacio debajo del título */
+    text-align: center; /* Centra el título */
+}
+
+.user_info {
+    text-align: center; /* Centra el texto dentro del contenedor */
+    margin-top: 10px; /* Espacio superior para separar del título */
+}
+
+.profile_pic {
+    width: 120px; /* Ancho de la imagen */
+    height: 120px; /* Alto de la imagen */
+    border-radius: 50%; /* Hace que la imagen sea circular */
+    margin-bottom: 15px; /* Espacio debajo de la imagen */
+    border: 3px solid #007bff; /* Borde azul alrededor de la imagen */
+    transition: transform 0.3s; /* Transición suave para efectos */
+    display: block; /* Asegura que la imagen se comporte como un bloque */
+    margin-left: auto; /* Centra la imagen */
+    margin-right: auto; /* Centra la imagen */
+}
+
+.profile_pic:hover {
+    transform: scale(1.1); /* Aumenta el tamaño de la imagen al pasar el mouse */
+}
+
+.user_name {
+    font-size: 1.8rem; /* Tamaño de fuente para el nombre */
+    color: #007bff; /* Color azul para el nombre */
+    margin: 5px 0; /* Espacio arriba y abajo del nombre */
+}
+
+.description {
+    font-size: 1.1rem; /* Tamaño de fuente ligeramente más grande */
+    color: #666; /* Color gris para el texto */
+    margin: 5px 0; /* Espacio arriba y abajo de los párrafos */
+}
+
+.seeking {
+    font: 2rem;
+    color: #333;
+    margin: 5px 0;
+}
+
+.no_user_info {
+    color: #ff0000; /* Color rojo para el mensaje de error */
+    font-style: italic;
+}

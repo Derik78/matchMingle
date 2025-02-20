@@ -45,4 +45,3 @@ const UsersDetail = () => {
 }
 
 export default UsersDetail;
-
