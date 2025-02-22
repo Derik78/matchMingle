@@ -14,6 +14,7 @@ function Mensajes() {
     const [socket, setSocket] = useState(null);
 
     useEffect(() => {
+        //Creamos una conexión con el servidor de Socket.io que está corriendo en http://localhost:3001.
         const newSocket = io("http://localhost:3001", {
             transports: ['websocket']
         });
@@ -26,6 +27,7 @@ function Mensajes() {
         if (!socket || !otherUserId || !currentUser) return;
 
         // Unirse al chat
+        //Si los datos son válidos, envía el evento "join_chat" al servidor con el nombre de la sala. El servidor agrupa a los usuarios en salas, lo que significa que solo los que estén en la misma sala verán los mensajes. En este caso, la sala es el ID del usuario actual y el ID del usuario con el que se está chateando.
         socket.emit("join_chat", {
             currentUserId: currentUser.id,
             otherUserId: otherUserId
@@ -37,18 +39,22 @@ function Mensajes() {
         });
 
         // Escuchar nuevos mensajes
+        //Escucha el evento "receive_message", que el servidor emite cada vez que alguien envía un mensaje.Cuando recibe un mensaje (data), lo agrega a la lista de mensajes con setMessages((prev) => [...prev, data]).
         socket.on("receive_message", (data) => {
             setMessages(prev => [...prev, data]);
         });
 
+        //Para evitar memoria basura. Cuando el componente se desmonta, se eliminan los listeners de mensajes.
         return () => {
             socket.off("chat_history");
             socket.off("receive_message");
         };
     }, [socket, otherUserId, currentUser]);
 
+
     const sendMessage = (e) => {
         e.preventDefault();
+        //Si cumple con las condiciones pedidas por el if entonces crea un objeto messageData con los datos del mensaje y lo envía al servidor con el evento "send_message".
         if (message.trim() && currentUser && otherUserId && socket) {
             const messageData = {
                 content: message,
@@ -66,6 +72,7 @@ function Mensajes() {
             <div className="max-w-2xl mx-auto p-4">
                 <div className="bg-white rounded-lg shadow-md h-[500px] flex flex-col">
                     <div className="flex-1 overflow-y-auto p-4">
+                        {/* Recorre la lista messages y, por cada mensaje (msg), crea un párrafo (<p>*/}	
                         {messages.map((msg, index) => (
                             <div
                                 key={index}
