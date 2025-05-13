@@ -1,20 +1,28 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect, useContext, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import io from "socket.io-client";
 import { AppContext } from "../../Context";
 import Layout from "../../Components/Layout";
 
+// Componente Mensajes
+// Este componente maneja la lógica del chat entre dos usuarios
+// Importa los hooks necesarios de React y React Router
+// Importa el contexto de la aplicación y el componente de diseño
+// Importa la librería de socket.io para la comunicación en tiempo real
 function Mensajes() {
     const [searchParams] = useSearchParams();
     const { currentUser } = useContext(AppContext);
     const [message, setMessage] = useState("");
     const [messages, setMessages] = useState([]);
+    const [isTyping, setIsTyping] = useState(false);
+    const [otherUserTyping, setOtherUserTyping] = useState(false);
+    const [otherUserOnline, setOtherUserOnline] = useState(false);
     const otherUserId = searchParams.get("chat");
+    const typingTimeoutRef = useRef(null);
     
     const [socket, setSocket] = useState(null);
 
     useEffect(() => {
-        //Creamos una conexión con el servidor de Socket.io que está corriendo en http://localhost:3001.
         const newSocket = io("http://localhost:3001", {
             transports: ['websocket']
         });
@@ -26,42 +34,79 @@ function Mensajes() {
     useEffect(() => {
         if (!socket || !otherUserId || !currentUser) return;
 
-        // Unirse al chat
-        //Si los datos son válidos, envía el evento "join_chat" al servidor con el nombre de la sala. El servidor agrupa a los usuarios en salas, lo que significa que solo los que estén en la misma sala verán los mensajes. En este caso, la sala es el ID del usuario actual y el ID del usuario con el que se está chateando.
-        socket.emit("join_chat", {
+        console.log('Conectando usuario:', currentUser.id);
+        socket.emit("user_connected", currentUser.id);
+
+        const chatData = {
             currentUserId: currentUser.id,
             otherUserId: otherUserId
-        });
+        };
+        console.log('Uniéndose al chat:', chatData);
+        socket.emit("join_chat", chatData);
 
-        // Recibir historial de mensajes
         socket.on("chat_history", (history) => {
             setMessages(history);
         });
 
-        // Escuchar nuevos mensajes
-        //Escucha el evento "receive_message", que el servidor emite cada vez que alguien envía un mensaje.Cuando recibe un mensaje (data), lo agrega a la lista de mensajes con setMessages((prev) => [...prev, data]).
         socket.on("receive_message", (data) => {
+            console.log('Mensaje recibido:', data);
             setMessages(prev => [...prev, data]);
         });
 
-        //Para evitar memoria basura. Cuando el componente se desmonta, se eliminan los listeners de mensajes.
+        socket.on("user_typing", (data) => {
+            console.log('Usuario escribiendo:', data);
+            setOtherUserTyping(data.isTyping);
+        });
+
+        socket.on("user_status", (data) => {
+            console.log('Estado de usuario:', data);
+            if (data.userId === parseInt(otherUserId)) {
+                setOtherUserOnline(data.status === "online");
+            }
+        });
+
         return () => {
+            console.log('Limpiando listeners');
             socket.off("chat_history");
             socket.off("receive_message");
+            socket.off("user_typing");
+            socket.off("user_status");
         };
     }, [socket, otherUserId, currentUser]);
 
+    const handleTyping = () => {
+        if (!socket) return;
+
+        socket.emit("typing", {
+            currentUserId: currentUser.id,
+            otherUserId: otherUserId,
+            isTyping: true
+        });
+
+        if (typingTimeoutRef.current) {
+            clearTimeout(typingTimeoutRef.current);
+        }
+
+        typingTimeoutRef.current = setTimeout(() => {
+            socket.emit("typing", {
+                currentUserId: currentUser.id,
+                otherUserId: otherUserId,
+                isTyping: false
+            });
+        }, 1000);
+    };
 
     const sendMessage = (e) => {
         e.preventDefault();
-        //Si cumple con las condiciones pedidas por el if entonces crea un objeto messageData con los datos del mensaje y lo envía al servidor con el evento "send_message".
-        if (message.trim() && currentUser && otherUserId && socket) {
+        if (message.trim() && socket) {
             const messageData = {
-                content: message,
-                sender: currentUser.id,
-                receiver: otherUserId,
+                senderId: currentUser.id,
+                receiverId: parseInt(otherUserId),
+                message: message.trim(),
                 senderName: currentUser.first_name
             };
+            
+            console.log('Enviando mensaje:', messageData);
             socket.emit("send_message", messageData);
             setMessage("");
         }
@@ -70,43 +115,54 @@ function Mensajes() {
     return (
         <Layout>
             <div className="max-w-2xl mx-auto p-4">
-                <div className="bg-white rounded-lg shadow-md h-[500px] flex flex-col">
-                    <div className="flex-1 overflow-y-auto p-4">
-                        {/* Recorre la lista messages y, por cada mensaje (msg), crea un párrafo (<p>*/}	
+                <div className="bg-white rounded-lg shadow-lg">
+                    <div className="p-4 border-b">
+                        <h2 className="text-xl font-bold">Chat</h2>
+                        {otherUserOnline && (
+                            <span className="text-green-500 text-sm">En línea</span>
+                        )}
+                    </div>
+                    
+                    <div className="h-96 overflow-y-auto p-4">
                         {messages.map((msg, index) => (
                             <div
                                 key={index}
-                                className={`mb-4 ${
-                                    msg.sender === currentUser.id
-                                        ? "text-right"
-                                        : "text-left"
-                                }`}
+                                className={`mb-4 ${msg.senderId === currentUser.id ? 'text-right' : 'text-left'}`}
                             >
-                                <div
-                                    className={`inline-block p-2 rounded-lg ${
-                                        msg.sender === currentUser.id
-                                            ? "bg-blue-500 text-white"
-                                            : "bg-gray-200"
-                                    }`}
-                                >
-                                    <p className="text-sm font-bold">{msg.senderName}</p>
-                                    <p>{msg.content}</p>
+                                <div className={`inline-block p-2 rounded-lg ${
+                                    msg.senderId === currentUser.id 
+                                    ? 'bg-blue-500 text-white' 
+                                    : 'bg-gray-200'
+                                }`}>
+                                    <p>{msg.message}</p>
+                                    <span className="text-xs">
+                                        {new Date(msg.timestamp).toLocaleTimeString()}
+                                    </span>
                                 </div>
                             </div>
                         ))}
+                        {otherUserTyping && (
+                            <div className="text-gray-500 text-sm">
+                                Escribiendo...
+                            </div>
+                        )}
                     </div>
+
                     <form onSubmit={sendMessage} className="p-4 border-t">
                         <div className="flex gap-2">
                             <input
                                 type="text"
                                 value={message}
-                                onChange={(e) => setMessage(e.target.value)}
-                                className="flex-1 border rounded-lg px-3 py-2"
+                                onChange={(e) => {
+                                    setMessage(e.target.value);
+                                    handleTyping();
+                                }}
+                                className="flex-1 p-2 border rounded"
                                 placeholder="Escribe un mensaje..."
                             />
                             <button
                                 type="submit"
-                                className="bg-blue-500 text-white px-4 py-2 rounded-lg"
+                                className="bg-blue-500 text-white px-4 py-2 rounded"
                             >
                                 Enviar
                             </button>

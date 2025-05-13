@@ -1,6 +1,7 @@
 const express = require('express');
 const mysql = require('mysql2');
 const cors = require('cors');
+const crypto = require('crypto');
 
 const app = express();
 const port = 3000;
@@ -24,6 +25,63 @@ db.connect((err) => {
         return;
     }
     console.log('Conectado a la base de datos MySQL');
+});
+
+// Función simple para encriptar contraseña
+const encryptPassword = (password) => {
+    return crypto
+        .createHash('sha256')
+        .update(password)
+        .digest('hex');
+};
+
+// Ruta de registro
+// Esta ruta se encarga de registrar un nuevo usuario en la base de datos.
+// Cuando un cliente envía una solicitud POST a esta URL, se ejecutará la función proporcionada.
+// La función extrae los valores email, password, first_name y last_name del cuerpo de la solicitud (req.body).
+app.post('/api/register', (req, res) => {
+    const { email, password, first_name, last_name } = req.body;
+
+    // Encriptar la contraseña antes de guardarla
+    const hashedPassword = encryptPassword(password);
+
+    const query = 'INSERT INTO usuarios (email, password, first_name, last_name) VALUES (?, ?, ?, ?)';
+    db.query(query, [email, hashedPassword, first_name, last_name], (err, results) => {
+        if (err) {
+            console.error('Error:', err);
+            return res.status(500).json({ error: 'Error al registrar usuario' });
+        }
+        res.status(201).json({ message: 'Usuario registrado exitosamente' });
+    });
+});
+
+// Modificar la ruta de login
+app.post('/api/login', (req, res) => {
+    const { email, password } = req.body;
+    
+    // Encriptar la contraseña proporcionada para comparar
+    const hashedPassword = encryptPassword(password);
+
+    const query = 'SELECT * FROM usuarios WHERE email = ? AND password = ?';
+    db.query(query, [email, hashedPassword], (err, results) => {
+        if (err) {
+            console.error('Error:', err);
+            return res.status(500).json({ error: 'Error del servidor' });
+        }
+        
+        if (results.length === 0) {
+            return res.status(401).json({ error: 'Credenciales inválidas' });
+        }
+
+        const user = results[0];
+        res.json({ 
+            user: {
+                id: user.id,
+                email: user.email,
+                first_name: user.first_name
+            }
+        });
+    });
 });
 
 // Rutas de ejemplo
@@ -131,7 +189,28 @@ app.post('/api/likes_recibidos', (req, res) => {
     });
 });
 
-
+// Ruta para verificar matches
+app.get('/api/matches/:userId', (req, res) => {
+    const userId = req.params.userId;
+    const query = `
+        SELECT DISTINCT u.*, 
+               MAX(l1.creado_en) as match_date 
+        FROM usuarios u
+        INNER JOIN likes_recibidos l1 ON u.id = l1.id_usuario_recibido
+        INNER JOIN likes_recibidos l2 ON l1.id_usuario_dador = l2.id_usuario_recibido 
+            AND l1.id_usuario_recibido = l2.id_usuario_dador
+        WHERE l1.id_usuario_dador = ?
+        GROUP BY u.id
+        ORDER BY match_date DESC`;
+    
+    db.query(query, [userId], (err, results) => {
+        if (err) {
+            console.error('Error al obtener matches:', err);
+            return res.status(500).json({ error: 'Error interno del servidor' });
+        }
+        res.json(results);
+    });
+});
 
 // Iniciar el servidor
 app.listen(port, () => {

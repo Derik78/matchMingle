@@ -1,81 +1,70 @@
-//socket es una biblioteca que permite la comunicación bidireccional, por ejemplo cuando se usa join para ingresar a la sala, emit para enviar algun mensaje o on para recibir y escuchar.
-
-//Importa el framework Express completo para crear el servidor web y las rutas.
+// Este archivo es el servidor de WebSocket para manejar la comunicación en tiempo real entre los usuarios
 const express = require('express');
-//Importa el módulo http para crear un servidor HTTP de Node.js.
 const { createServer } = require('http');
-//Importa el módulo socket.io para habilitar la comunicación en tiempo real.
 const { Server } = require('socket.io');
-//Importa el módulo cors para permitir solicitudes de otros orígenes.
 const cors = require('cors');
 
-// Crea una instancia de Express
 const app = express();
-// Habilita CORS
 app.use(cors());
-
-// Crea un servidor HTTP con Express
 const httpServer = createServer(app);
-// Crea una instancia de Socket.IO y la asocia con el servidor HTTP
+
 const io = new Server(httpServer, {
-    // Configuración de CORS para permitir solicitudes desde http://localhost:5173 y solo los métodos GET y POST
     cors: {
-        origin: "http://localhost:5173",
+        origin: "http://localhost:5000",
         methods: ["GET", "POST"]
     }
 });
 
-// Mapa para almacenar historial de mensajes por sala
-const chatRooms = new Map();
+const onlineUsers = new Map();
 
-// Función para obtener el ID de la sala de chat
-const getChatRoomId = (user1, user2) => {
-    return [user1, user2].sort().join('_');
-};
+io.on('connection', (socket) => {
+    console.log('Usuario conectado:', socket.id);
 
-//Se ejecuta cuando un cliente se conecta al servidor, Cada conexión recibe un objeto socket único con un id aleatorio, Registra en consola cuando un usuario se conecta
-io.on("connection", (socket) => {
-    console.log("Usuario conectado:", socket.id);
-
-    //genera un roomid unico, une al usuario a esa sala especifica
-    socket.on("join_chat", (data) => {
-        const { currentUserId, otherUserId } = data;
-        const roomId = getChatRoomId(currentUserId, otherUserId);
-        
-        socket.join(roomId);
-        console.log(`Usuario ${currentUserId} se unió al chat ${roomId}`);
-
-        // verifica si existe la sala en el Map chatRooms, Si no existe, crea una nueva sala vacía, Envía el historial de mensajes al usuario que se unió a la sala
-        if (!chatRooms.has(roomId)) {
-            chatRooms.set(roomId, []);
-        }
-        socket.emit("chat_history", chatRooms.get(roomId));
+    socket.on("user_connected", (userId) => {
+        console.log('Usuario identificado:', userId);
+        onlineUsers.set(userId, socket.id);
+        io.emit("user_status", {
+            userId: userId,
+            status: "online"
+        });
     });
-    //socket.on: Es un método que escucha eventos
-    //"send_message": Es el nombre del evento que escucha
-    //(data) =>: Es una arrow function que recibe el parámetro data
-    // data: Es un objeto que contiene la información del mensaje enviado por el cliente
+
+    socket.on("join_chat", (data) => {
+        console.log('Usuario uniéndose al chat:', data);
+        const chatRoom = `chat_${[data.currentUserId, data.otherUserId].sort().join("_")}`;
+        socket.join(chatRoom);
+    });
+
     socket.on("send_message", (data) => {
-        const roomId = getChatRoomId(data.sender, data.receiver);
+        console.log('Mensaje recibido:', data);
+        const chatRoom = `chat_${[data.senderId, data.receiverId].sort().join("_")}`;
         const messageWithTimestamp = {
             ...data,
             timestamp: new Date().toISOString()
         };
+        io.to(chatRoom).emit("receive_message", messageWithTimestamp);
+    });
 
-        // Intenta obtener el array de mensajes existente para esa sala, si no existe usa un array vacío
-        const roomMessages = chatRooms.get(roomId) || [];
-
-        roomMessages.push(messageWithTimestamp);
-
-        //chatRooms.set(): Actualiza el Map con los nuevos mensajes, roomId: Es la clave única de la sala, roomMessages: Es el array actualizado con el nuevo mensaje
-        chatRooms.set(roomId, roomMessages);
-
-        // Emitir mensaje a todos en la sala
-        io.to(roomId).emit("receive_message", messageWithTimestamp);
+    socket.on("typing", (data) => {
+        const chatRoom = `chat_${[data.currentUserId, data.otherUserId].sort().join("_")}`;
+        socket.to(chatRoom).emit("user_typing", {
+            userId: data.currentUserId,
+            isTyping: data.isTyping
+        });
     });
 
     socket.on("disconnect", () => {
-        console.log("Usuario desconectado:", socket.id);
+        console.log('Usuario desconectado:', socket.id);
+        for (const [userId, socketId] of onlineUsers.entries()) {
+            if (socketId === socket.id) {
+                onlineUsers.delete(userId);
+                io.emit("user_status", {
+                    userId: userId,
+                    status: "offline"
+                });
+                break;
+            }
+        }
     });
 });
 
