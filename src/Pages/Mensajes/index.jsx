@@ -4,6 +4,11 @@ import io from "socket.io-client";
 import { AppContext } from "../../Context";
 import Layout from "../../Components/Layout";
 
+// Componente Mensajes
+// Este componente maneja la lógica del chat entre dos usuarios
+// Importa los hooks necesarios de React y React Router
+// Importa el contexto de la aplicación y el componente de diseño
+// Importa la librería de socket.io para la comunicación en tiempo real
 function Mensajes() {
     const [searchParams] = useSearchParams();
     const { currentUser } = useContext(AppContext);
