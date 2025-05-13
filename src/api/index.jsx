@@ -58,3 +58,18 @@ export const fetchLikesCount = async (userId) => {
         throw error;
     }
 };
+
+// Función para obtener los matches del usuario
+export const fetchMatches = async (userId) => {
+    try {
+        const response = await fetch(`http://localhost:3000/api/matches/${userId}`);
+        if (!response.ok) {
+            throw new Error('Error al obtener matches');
+        }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Error:', error);
+        return [];
+    }
+};
