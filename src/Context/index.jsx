@@ -53,20 +53,43 @@ export const AppProvider = ({ children }) => {
 
 
     const addUser = async (newUser) => {
-        const response = await fetch('http://localhost:3000/api/usuarios', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(newUser),
-        });
+        try {
+            const response = await fetch('http://localhost:3000/api/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: newUser.email,
+                    password: newUser.password,
+                    first_name: newUser.first_name,
+                    last_name: newUser.last_name,
+                    description: newUser.description,
+                    seeking: newUser.seeking,
+                    gender: newUser.gender,
+                    age: newUser.age,
+                    image: newUser.image
+                })
+            });
 
-        if (!response.ok) {
-            throw new Error('Error al crear el usuario'); // Manejo de errores
+            const data = await response.json();
+            
+            if (!data.success) {
+                throw new Error(data.error);
+            }
+
+            // Agregar el nuevo usuario al estado users
+            const newUserWithId = {
+                ...newUser,
+                id: data.userId
+            };
+            setUsers(prevUsers => [...prevUsers, newUserWithId]);
+
+            return data;
+        } catch (error) {
+            console.error('Error en el registro:', error);
+            throw error;
         }
-
-        const data = await response.json(); // Obtiene la respuesta en formato JSON
-        return data.id; // Devuelve el ID del nuevo usuario
     };
 
     //Aqui va el estado para los usuarios que ya no se le mostraran al usuario cuando les da no me gusta

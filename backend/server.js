@@ -35,23 +35,80 @@ const encryptPassword = (password) => {
         .digest('hex');
 };
 
-// Ruta de registro
-// Esta ruta se encarga de registrar un nuevo usuario en la base de datos.
-// Cuando un cliente envía una solicitud POST a esta URL, se ejecutará la función proporcionada.
-// La función extrae los valores email, password, first_name y last_name del cuerpo de la solicitud (req.body).
+// Nueva ruta de registro
 app.post('/api/register', (req, res) => {
-    const { email, password, first_name, last_name } = req.body;
+    const { email, password, first_name, last_name, description, seeking, gender, age, image } = req.body;
 
-    // Encriptar la contraseña antes de guardarla
-    const hashedPassword = encryptPassword(password);
+    // Validación básica
+    if (!email || !password || !first_name || !last_name) {
+        return res.status(400).json({ 
+            success: false, 
+            error: 'Todos los campos son requeridos' 
+        });
+    }
 
-    const query = 'INSERT INTO usuarios (email, password, first_name, last_name) VALUES (?, ?, ?, ?)';
-    db.query(query, [email, hashedPassword, first_name, last_name], (err, results) => {
+    // Verificar email existente en ambas tablas
+    const checkEmail = 'SELECT id FROM usuarios WHERE email = ? UNION SELECT id FROM registros WHERE email = ?';
+    db.query(checkEmail, [email, email], (err, results) => {
         if (err) {
-            console.error('Error:', err);
-            return res.status(500).json({ error: 'Error al registrar usuario' });
+            console.error('Error al verificar email:', err);
+            return res.status(500).json({ 
+                success: false, 
+                error: 'Error en el servidor' 
+            });
         }
-        res.status(201).json({ message: 'Usuario registrado exitosamente' });
+
+        if (results.length > 0) {
+            return res.status(400).json({ 
+                success: false, 
+                error: 'El email ya está registrado' 
+            });
+        }
+
+        const hashedPassword = encryptPassword(password);
+        const userData = [
+            email, 
+            hashedPassword, 
+            first_name, 
+            last_name, 
+            description || '', 
+            seeking || 'Amistad',
+            gender || 'No especificado',
+            age || 18,
+            image || ''
+        ];
+
+        // Primero insertar en registros
+        const registrosQuery = 'INSERT INTO registros (email, password, first_name, last_name, description, seeking, gender, age, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
+        db.query(registrosQuery, userData, (err, registroResult) => {
+            if (err) {
+                console.error('Error al insertar en registros:', err);
+                return res.status(500).json({ 
+                    success: false, 
+                    error: 'Error al crear el registro' 
+                });
+            }
+
+            // Después insertar en usuarios
+            const usuariosQuery = 'INSERT INTO usuarios (email, password, first_name, last_name, description, seeking, gender, age, image) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)';
+            db.query(usuariosQuery, userData, (err, usuarioResult) => {
+                if (err) {
+                    console.error('Error al insertar en usuarios:', err);
+                    // Si falla la inserción en usuarios, eliminar el registro de registros
+                    db.query('DELETE FROM registros WHERE id = ?', [registroResult.insertId]);
+                    return res.status(500).json({ 
+                        success: false, 
+                        error: 'Error al crear el usuario' 
+                    });
+                }
+
+                res.status(201).json({
+                    success: true,
+                    message: 'Usuario registrado exitosamente',
+                    userId: usuarioResult.insertId
+                });
+            });
+        });
     });
 });
 
